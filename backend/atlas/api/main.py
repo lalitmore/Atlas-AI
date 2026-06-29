@@ -15,6 +15,10 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+import os                              
+from fastapi import Request            
+from atlas.api import guardrails       
+
 # `adk web` auto-loads each agent folder's .env; uvicorn does NOT. So we load the same
 # .env the pipeline already uses, and we do it BEFORE importing any agent — importing
 # the pipeline instantiates `settings`, which needs GOOGLE_API_KEY present in the env.
@@ -40,10 +44,12 @@ runner = Runner(app_name=APP_NAME, agent=root_agent, session_service=session_ser
 
 app = FastAPI(title="Atlas AI API")
 
-# The Next.js dev server runs on :3000; let it call us from the browser.
+# Allowed origins come from the environment so the same code serves localhost in dev
+# and your Vercel domain in production. Comma-separated.
+_origins = os.environ.get("ALLOWED_ORIGINS", "http://localhost:3000")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[o.strip() for o in _origins.split(",") if o.strip()],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -121,10 +127,16 @@ async def plan_event_stream(user_request: str):
         }
     except Exception as exc:
         yield {"event": "error", "data": json.dumps({"message": str(exc)})}
+    finally:
+        guardrails.release_slot()
 
 @app.post("/api/plan")
-async def plan(req: PlanRequest):
-    """Kick off a planning run; stream progress + the final itinerary over SSE."""
+async def plan(req: PlanRequest, request: Request):
+    """Kick off a planning run; stream progress + the itinerary over SSE.
+    Guardrails run first and can reject the request before any model call."""
+    ip = guardrails.precheck(request, req.request)   # 400/429 if blocked
+    await guardrails.acquire_slot()                   # 429 if at capacity
+    guardrails.record(ip)                             # count this run
     return EventSourceResponse(plan_event_stream(req.request))
 
 
