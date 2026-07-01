@@ -18,8 +18,21 @@ const STAGES = [
   { name: "itinerary", label: "Writing your day-by-day plan" },
 ] as const;
 
-const EXAMPLE =
-  "10 days in Japan in October, me and my vegetarian girlfriend, we love anime food nature nightlife and photography, budget around $4500 total, and we hate early mornings";
+const EXAMPLES = [
+  { label: "Japan, food & culture", icon: "🍜", text: "10 days in Japan in October, two of us, vegetarian, we love anime, food, nature and photography, budget around $4,500, and we hate early mornings" },
+  { label: "California road trip", icon: "🚗", text: "A relaxed 5-day road trip along the California coast starting from San Francisco, two of us, we love scenic drives, seafood and small towns, mid-range budget" },
+  { label: "Italy honeymoon", icon: "🍷", text: "7 days in Italy split between Rome and the Amalfi Coast, honeymoon for two, we love history, wine and slow mornings, comfortable budget" },
+  { label: "CDMX long weekend", icon: "🎨", text: "A long weekend in Mexico City, solo traveler, into art, markets and street food, keep it affordable" },
+];
+
+const RECIPE = [
+  { k: "Where + how long", d: "A place and a number of days", ex: '"10 days in Japan" or "a weekend near Lake Tahoe"' },
+  { k: "When", d: "Month or season, so events & weather fit", ex: '"in October"' },
+  { k: "Who", d: "How many people, and any needs", ex: '"two of us, one vegetarian"' },
+  { k: "What you love", d: "Your interests drive the picks", ex: '"food, nature, anime, nightlife"' },
+  { k: "Budget", d: "A rough total or per-day", ex: '"around $4,500 total"' },
+  { k: "Dealbreakers", d: "Anything to avoid", ex: '"we hate early mornings"' },
+];
 
 type StageState = "pending" | "active" | "done" | "failed";
 const norm = (s: string) => s.trim().toLowerCase();
@@ -66,7 +79,7 @@ function LinkPill({ href, children }: { href: string; children: React.ReactNode 
 }
 
 export default function Home() {
-  const [request, setRequest] = useState(EXAMPLE);
+  const [request, setRequest] = useState("");
   const [origin, setOrigin] = useState("");
   const [running, setRunning] = useState(false);
   const [startedStages, setStartedStages] = useState<string[]>([]);
@@ -137,12 +150,55 @@ export default function Home() {
       <section className="pt-10">
         <p className="mono-label text-blue">Plot a trip</p>
         <h1 className="mt-3 font-display text-3xl font-bold leading-tight">Tell Atlas where you want to go.</h1>
+
         <textarea
           className="mt-5 w-full rounded-xl border border-line bg-panel p-4 text-sm text-ink placeholder:text-muted focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/20"
-          rows={4} value={request} onChange={(e) => setRequest(e.target.value)} disabled={running} />
+          rows={4}
+          maxLength={1200}
+          placeholder="Describe your trip — where, when, who's going, what you love, and a rough budget. Or tap an example below to start."
+          value={request}
+          onChange={(e) => setRequest(e.target.value)}
+          disabled={running}
+        />
+
+        {/* Starter examples — one tap fills the box */}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {EXAMPLES.map((ex) => (
+            <button
+              key={ex.label}
+              type="button"
+              onClick={() => setRequest(ex.text)}
+              disabled={running}
+              className="inline-flex items-center gap-1.5 rounded-full border border-line bg-panel px-3.5 py-1.5 text-xs text-ink transition hover:border-blue hover:text-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue/40 disabled:opacity-50"
+            >
+              <span aria-hidden>{ex.icon}</span>{ex.label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-muted">New to this? Tap an example to fill the box, then edit anything before planning.</p>
+
+        {/* Collapsible "how to describe your trip" recipe */}
+        <details className="group mt-3 overflow-hidden rounded-xl border border-line bg-panel">
+          <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 font-mono text-[0.64rem] font-bold uppercase tracking-[0.14em] text-blue [&::-webkit-details-marker]:hidden">
+            How to describe your trip
+            <span aria-hidden className="ml-auto text-sm transition-transform duration-200 group-open:rotate-90">›</span>
+          </summary>
+          <div className="border-t border-line px-4 pb-4 pt-1">
+            <p className="my-3 text-xs text-muted">The more of these you include, the sharper your plan — but even one sentence works.</p>
+            {RECIPE.map((r) => (
+              <div key={r.k} className="grid grid-cols-[120px_1fr] gap-3 border-b border-dashed border-line py-2 text-sm last:border-b-0">
+                <span className="pt-0.5 font-mono text-[0.58rem] uppercase tracking-[0.12em] text-magenta">{r.k}</span>
+                <span className="text-ink">{r.d} <span className="italic text-muted">— {r.ex}</span></span>
+              </div>
+            ))}
+          </div>
+        </details>
+
         <button
-          className="mt-3 inline-flex items-center gap-2 rounded-xl bg-blue px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue/50 disabled:opacity-50"
-          onClick={handlePlan} disabled={running || request.trim().length === 0}>
+          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue/50 disabled:opacity-50"
+          onClick={handlePlan}
+          disabled={running || request.trim().length === 0}
+        >
           {running && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />}
           {running ? "Plotting…" : "Plan my trip →"}
         </button>
