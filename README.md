@@ -191,5 +191,3 @@ Atlas adds the orchestration layer that makes the output reliable and actionable
 Gemini is the engine inside Atlas. Atlas is the system around it.
 
 ---
-
-*Built as a portfolio project targeting Google AI/Cloud engineering roles. Stack chosen to showcase Google ADK, Gemini structured output, grounding, Cloud Run, and full-stack AI product design.*
