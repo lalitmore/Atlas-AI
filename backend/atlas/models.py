@@ -1,36 +1,52 @@
-"""Centralized, resilient LLM configuration.
-
-Every agent builds its model here, so retry/backoff behavior is uniform across the whole
-pipeline. We wrap the model name (from settings) in ADK's Gemini adapter with
-HttpRetryOptions, so transient failures — short-window 429s and 5xx server errors — are
-retried automatically at the HTTP layer, retrying ONLY the failed call.
-"""
+"""One bounded retry policy for every Gemini stage, before any output is emitted."""
 from __future__ import annotations
+
+from asyncio import sleep as retry_sleep
+import logging
 
 from google.adk.models import Gemini
 from google.genai import types
 
+from atlas.api.errors import RedactTraceback, is_retryable
 from atlas.config import settings
 
-# Exponential backoff + jitter. This rescues the two common live-demo failures: a
-# short-window 429 (too many requests in the last minute) and a 503 (Gemini briefly
-# overloaded). It deliberately does NOT wait out a full daily-quota exhaustion — those
-# attempts exhaust within a couple of minutes and surface the error, which is correct.
-RETRY_OPTIONS = types.HttpRetryOptions(
-    attempts=5,          # up to 5 tries after the first failure
-    initial_delay=2.0,   # ~2s before the first retry
-    max_delay=60.0,      # never wait more than 60s between tries
-    exp_base=2.0,        # double the delay each round (2s → 4s → 8s → ...)
-    jitter=0.2,          # ±20% randomness so parallel calls don't retry in lockstep
-    http_status_codes=[408, 429, 500, 502, 503, 504],
-)
+logger = logging.getLogger(__name__)
+logger.addFilter(RedactTraceback())
+MAX_RETRIES = 2
+INITIAL_RETRY_DELAY = 1.0
+# Disable the SDK's nested retry loop; the adapter below also handles raw DNS errors.
+RETRY_OPTIONS = types.HttpRetryOptions(attempts=1)
 
 
-# def build_model() -> Gemini:
-#     """A fresh, retry-configured Gemini adapter for the model named in settings."""
-#     return Gemini(model=settings.default_model, retry_options=RETRY_OPTIONS)
+class ResilientGemini(Gemini):
+    async def generate_content_async(self, llm_request, stream=False):
+        for attempt in range(MAX_RETRIES + 1):
+            emitted = False
+            # Preprocessing may append content/config. Start each attempt from the same request.
+            request = llm_request.model_copy(update={
+                "contents": [content.model_copy(deep=True) for content in llm_request.contents],
+                "config": llm_request.config.model_copy(deep=True),
+            })
+            if request.config.http_options is None:
+                request.config.http_options = types.HttpOptions()
+            request.config.http_options.timeout = 30_000
+            request.config.http_options.retry_options = RETRY_OPTIONS
+            try:
+                async for response in super().generate_content_async(request, stream=stream):
+                    emitted = True
+                    yield response
+                return
+            except Exception as exc:
+                # Never replay a stream after partial output, nor retry auth/validation errors.
+                if emitted or attempt == MAX_RETRIES or not is_retryable(exc):
+                    raise
+                delay = INITIAL_RETRY_DELAY * (2 ** attempt)
+                logger.warning(
+                    "Transient Gemini failure; retry %s/%s in %.1fs (%s)",
+                    attempt + 1, MAX_RETRIES, delay, type(exc).__name__,
+                )
+                await retry_sleep(delay)
+
 
 def build_model(model_name: str | None = None) -> Gemini:
-    """A fresh, retry-configured Gemini adapter. Pass model_name to override the default
-    (e.g. run a reasoning-heavy stage on full Flash while the rest stay on Flash-Lite)."""
-    return Gemini(model=model_name or settings.default_model, retry_options=RETRY_OPTIONS)
+    return ResilientGemini(model=model_name or settings.default_model, retry_options=RETRY_OPTIONS)

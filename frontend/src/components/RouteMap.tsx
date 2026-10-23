@@ -28,7 +28,10 @@ export default function RouteMap({ route }: { route: RouteStop[] }) {
   const points = route.map((s) => [s.latitude, s.longitude] as [number, number]);
   return (
     <MapContainer center={points[0] ?? [35.68, 139.76]} zoom={6} scrollWheelZoom={false} style={{ height: "100%", width: "100%" }}>
-      <TileLayer attribution='&copy; OpenStreetMap &copy; CARTO' url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png" />
+      <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
       {points.length > 1 && <Polyline positions={points} pathOptions={{ color: "#1D4ED8", weight: 3, opacity: 0.8, dashArray: "6 8" }} />}
       {route.map((stop, i) => (
         <Marker key={stop.name} position={[stop.latitude, stop.longitude]} icon={numberedIcon(i + 1)}>

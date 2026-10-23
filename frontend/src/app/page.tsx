@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { streamPlan, type CompletePayload, type RouteStop, type DayPlan } from "@/lib/atlas";
+import { streamPlan, type CompletePayload, type DayPlan } from "@/lib/atlas";
 import { directionsUrl, flightsUrl, hotelsUrl, foodUrl, placeUrl } from "@/lib/links";
+import DownloadPdfButton from "@/components/DownloadPdfButton";
 
 const RouteMap = dynamic(() => import("@/components/RouteMap"), {
   ssr: false,
@@ -12,7 +13,7 @@ const RouteMap = dynamic(() => import("@/components/RouteMap"), {
 
 const STAGES = [
   { name: "intake", label: "Understanding your request" },
-  { name: "research", label: "Researching destinations, events & prices" },
+  { name: "research", label: "Exploring destinations & travel options" },
   { name: "structure", label: "Organizing the findings" },
   { name: "optimize", label: "Optimizing the route" },
   { name: "itinerary", label: "Writing your day-by-day plan" },
@@ -43,7 +44,10 @@ function Flap({ text }: { text: string }) {
   useEffect(() => {
     const reduce = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion:reduce)").matches;
     const final = text.split("");
-    if (reduce) { setShown(final); return; }
+    if (reduce) {
+      const frame = window.requestAnimationFrame(() => setShown(final));
+      return () => window.cancelAnimationFrame(frame);
+    }
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789·";
     const ivs: number[] = [];
     final.map((c, i) => ({ c, i })).filter((x) => x.c !== " ").forEach((it, k) => {
@@ -84,7 +88,9 @@ export default function Home() {
   const [running, setRunning] = useState(false);
   const [startedStages, setStartedStages] = useState<string[]>([]);
   const [result, setResult] = useState<CompletePayload | null>(null);
+  const [resultRequest, setResultRequest] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [failedStage, setFailedStage] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const startRef = useRef(0);
 
@@ -96,12 +102,18 @@ export default function Home() {
 
   async function handlePlan() {
     startRef.current = Date.now();
-    setRunning(true); setStartedStages([]); setResult(null); setError(null); setElapsed(0);
+    setRunning(true); setStartedStages([]); setResult(null); setError(null); setFailedStage(null); setElapsed(0);
     try {
       for await (const event of streamPlan(request)) {
         if (event.type === "stage") setStartedStages((p) => (p.includes(event.name) ? p : [...p, event.name]));
-        else if (event.type === "complete") setResult(event.data);
-        else if (event.type === "error") setError(event.message);
+        else if (event.type === "complete") {
+          setResult(event.data);
+          setResultRequest(request);
+        }
+        else if (event.type === "error") {
+          setError(event.message);
+          setFailedStage(event.stage ?? null);
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -111,25 +123,23 @@ export default function Home() {
   }
 
   function stageState(name: string): StageState {
+    if (error && failedStage === name) return "failed";
     const i = startedStages.indexOf(name);
     if (i === -1) return "pending";
     const last = i === startedStages.length - 1;
-    if (last && error) return "failed";
-    if (last && !result) return "active";
+    if (last && error && !failedStage) return "failed";
+    if (last && !result && running) return "active";
     return "done";
   }
 
   const itinerary = result?.itinerary;
   const route = result?.optimized_route ?? [];
   const showBoard = running || startedStages.length > 0 || !!result || !!error;
-  const friendlyError =
-    error && /429|RESOURCE_EXHAUSTED|quota/i.test(error)
-      ? "Rate limit — the free tier resets daily. Try again shortly."
-      : error;
+  const friendlyError = error;
 
   const brief = (result?.trip_brief ?? {}) as { party_size?: number; constraints?: { dietary_restrictions?: string[] } };
-  const adults = brief.party_size ?? 2;
-  const diet = brief.constraints?.dietary_restrictions?.[0];
+  const adults = brief.party_size ?? 1;
+  const diet = brief.constraints?.dietary_restrictions?.join(", ");
 
   // group day_plans into stations (consecutive same-area), in itinerary order
   const stations: { area: string; days: DayPlan[] }[] = [];
@@ -234,7 +244,7 @@ export default function Home() {
             })
           )}
           {friendlyError && !result && (
-            <div className="board-row">
+            <div className="board-row" role="alert">
               <span style={{ fontFamily: "var(--font-mono)", fontSize: ".62rem", letterSpacing: ".14em", color: "#7C8794" }}>Status</span>
               <span style={{ color: "#F87171", fontFamily: "var(--font-mono)", fontSize: ".78rem" }}>{friendlyError}</span>
             </div>
@@ -246,7 +256,16 @@ export default function Home() {
         <section className="mt-12">
           <p className="mono-label text-blue rise">Your line</p>
           <h2 className="mt-2 font-display text-3xl font-bold rise">{itinerary.destination} · {itinerary.total_days} days</h2>
+          {result && !error && !running && (
+            <DownloadPdfButton data={result} request={resultRequest} origin={origin} />
+          )}
           <p className="mt-3 max-w-[52ch] rise" style={{ color: "#3a4048" }}>{itinerary.summary}</p>
+          {result?.research_grounded === false && (
+            <p className="mt-3 text-sm text-muted">
+              This plan uses general knowledge without live web research. Check current prices,
+              opening hours, availability, and event dates before booking.
+            </p>
+          )}
 
           {route.length > 0 && (
             <div className="mt-6 h-80 w-full overflow-hidden rounded-2xl border border-line rise">

@@ -11,6 +11,19 @@ export function directionsUrl(origin: string | undefined, destination: string) {
   return `https://www.google.com/maps/dir/?api=1${o}&destination=${enc(destination)}`;
 }
 
+// Google Maps' multi-stop route, in the optimizer's visit order.
+export function fullRouteUrl(stops: string[]) {
+  if (stops.length === 0) return "https://www.google.com/maps";
+  if (stops.length === 1) return directionsUrl(undefined, stops[0]);
+  const route = directionsUrl(stops[0], stops[stops.length - 1]);
+  const waypoints = stops.slice(1, -1);
+  return waypoints.length ? `${route}&waypoints=${enc(waypoints.join("|"))}` : route;
+}
+
+export function atlasUrl() {
+  return "https://atlasai-iota.vercel.app";
+}
+
 // Google Flights via a durable text query. Secondary to the directions link, which
 // already surfaces flights when flying is the sensible mode.
 export function flightsUrl(origin: string | undefined, destination: string) {

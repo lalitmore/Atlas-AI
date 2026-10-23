@@ -25,7 +25,8 @@ class DestinationResearch(BaseModel):
     summary: str = Field(..., description="A short overview (2-3 sentences) tuned to this traveler's brief.")
     candidate_areas: list[CandidateArea] = Field(
         default_factory=list,
-        description="Four to seven candidate cities or areas worth considering for this trip.",
+        description="Candidate base cities or areas suited to the trip duration. "
+                    "Group nearby neighborhoods of the same city into a single base.",
     )
     seasonal_notes: str = Field(
         default="",
@@ -33,8 +34,8 @@ class DestinationResearch(BaseModel):
     )
     key_findings: list[str] = Field(
         default_factory=list,
-        description="The most important facts the grounded research confirmed, "
-                    "e.g. a festival's real dates, a current price, a vegetarian-dining reality.",
+        description="The most useful destination findings, preserving uncertainty when "
+                    "based on general knowledge rather than verified live research.",
     )
     assumptions: list[str] = Field(
         default_factory=list,
@@ -47,4 +48,3 @@ class DestinationResearch(BaseModel):
             "'exact 2026 festival dates', 'current opening hours', 'real prices'."
         ),
     )
-   

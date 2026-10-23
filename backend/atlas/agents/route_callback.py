@@ -1,8 +1,7 @@
-"""Deterministic route optimization, injected via an agent callback.
+"""Deterministic route optimization shared by the explicit optimizer pipeline stage.
 
-ADK 2.0 routes custom execution logic into Before/After-AgentCallbacks rather than
-agent method overrides. Running it here means it executes unconditionally — no LLM
-decides whether to invoke it — and always writes `optimized_route` to state."""
+The optimizer always runs between research synthesis and itinerary writing; no LLM
+decides whether to invoke it. This helper stores `optimized_route` in ADK state."""
 from __future__ import annotations
 
 import json

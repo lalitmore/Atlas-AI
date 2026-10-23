@@ -1,0 +1,317 @@
+{
+  "data": {
+    "trip_brief": {
+      "destination": "Japan",
+      "duration_days": 10,
+      "travel_window": {
+        "month": "October",
+        "start_date": "2026-10-23",
+        "end_date": "2026-11-01",
+        "flexible": false
+      },
+      "party_size": 2,
+      "budget": {
+        "amount": 4500.0,
+        "currency": "USD",
+        "basis": "total"
+      },
+      "interests": [
+        "anime",
+        "food",
+        "nature",
+        "photography"
+      ],
+      "constraints": {
+        "avoid_early_mornings": true,
+        "dietary_restrictions": [
+          "vegetarian"
+        ],
+        "max_walking_per_day_km": null,
+        "other": []
+      },
+      "assumptions": [
+        "Two adults traveling together.",
+        "Dates are illustrative for this offline sample."
+      ],
+      "missing_info": [
+        "Departure airport",
+        "Accommodation preferences"
+      ]
+    },
+    "optimized_route": [
+      {
+        "name": "Tokyo",
+        "region": "Kanto",
+        "latitude": 35.68,
+        "longitude": 139.69,
+        "weight": 4,
+        "days": 5,
+        "day_start": 1,
+        "day_end": 5
+      },
+      {
+        "name": "Kyoto",
+        "region": "Kansai",
+        "latitude": 35.01,
+        "longitude": 135.77,
+        "weight": 3,
+        "days": 3,
+        "day_start": 6,
+        "day_end": 8
+      },
+      {
+        "name": "Osaka",
+        "region": "Kansai",
+        "latitude": 34.69,
+        "longitude": 135.5,
+        "weight": 2,
+        "days": 2,
+        "day_start": 9,
+        "day_end": 10
+      }
+    ],
+    "itinerary": {
+      "destination": "Japan",
+      "total_days": 10,
+      "summary": "A relaxed route through anime districts, gardens, and vegetarian food in three cities.",
+      "day_plans": [
+        {
+          "day_number": 1,
+          "area": "Tokyo",
+          "title": "浅草・Akihabara",
+          "activities": [
+            "10:30 — Start after a relaxed breakfast.",
+            "12:00 — Explore Sensō-ji 浅草寺.",
+            "16:00 — Photography walk, then Café time."
+          ],
+          "food": [
+            {
+              "meal": "Lunch",
+              "name": "T's Tantan Tokyo"
+            },
+            {
+              "meal": "Coffee",
+              "name": "Café sample — São Paulo accents"
+            }
+          ],
+          "notes": "Vegetarian: confirm broth and sauces contain no fish. Verify all opening hours."
+        },
+        {
+          "day_number": 2,
+          "area": "Tokyo",
+          "title": "浅草・Akihabara",
+          "activities": [
+            "10:30 — Start after a relaxed breakfast.",
+            "12:00 — Explore Sensō-ji 浅草寺.",
+            "16:00 — Photography walk, then Café time."
+          ],
+          "food": [
+            {
+              "meal": "Lunch",
+              "name": "T's Tantan Tokyo"
+            },
+            {
+              "meal": "Coffee",
+              "name": "Café sample — São Paulo accents"
+            }
+          ],
+          "notes": "Vegetarian: confirm broth and sauces contain no fish. Verify all opening hours."
+        },
+        {
+          "day_number": 3,
+          "area": "Tokyo",
+          "title": "浅草・Akihabara",
+          "activities": [
+            "10:30 — Start after a relaxed breakfast.",
+            "12:00 — Explore Sensō-ji 浅草寺.",
+            "16:00 — Photography walk, then Café time."
+          ],
+          "food": [
+            {
+              "meal": "Lunch",
+              "name": "T's Tantan Tokyo"
+            },
+            {
+              "meal": "Coffee",
+              "name": "Café sample — São Paulo accents"
+            }
+          ],
+          "notes": "Vegetarian: confirm broth and sauces contain no fish. Verify all opening hours."
+        },
+        {
+          "day_number": 4,
+          "area": "Tokyo",
+          "title": "浅草・Akihabara",
+          "activities": [
+            "10:30 — Start after a relaxed breakfast.",
+            "12:00 — Explore Sensō-ji 浅草寺.",
+            "16:00 — Photography walk, then Café time."
+          ],
+          "food": [
+            {
+              "meal": "Lunch",
+              "name": "T's Tantan Tokyo"
+            },
+            {
+              "meal": "Coffee",
+              "name": "Café sample — São Paulo accents"
+            }
+          ],
+          "notes": "Vegetarian: confirm broth and sauces contain no fish. Verify all opening hours."
+        },
+        {
+          "day_number": 5,
+          "area": "Tokyo",
+          "title": "浅草・Akihabara",
+          "activities": [
+            "10:30 — Start after a relaxed breakfast.",
+            "12:00 — Explore Sensō-ji 浅草寺.",
+            "16:00 — Photography walk, then Café time."
+          ],
+          "food": [
+            {
+              "meal": "Lunch",
+              "name": "T's Tantan Tokyo"
+            },
+            {
+              "meal": "Coffee",
+              "name": "Café sample — São Paulo accents"
+            }
+          ],
+          "notes": "Vegetarian: confirm broth and sauces contain no fish. Verify all opening hours."
+        },
+        {
+          "day_number": 6,
+          "area": "Kyoto",
+          "title": "京都の庭園",
+          "activities": [
+            "10:30 — Start after a relaxed breakfast.",
+            "12:00 — Explore Arashiyama 嵐山 gardens.",
+            "16:00 — Photography walk, then Café time."
+          ],
+          "food": [
+            {
+              "meal": "Lunch",
+              "name": "Vegan Ramen UZU Kyoto"
+            },
+            {
+              "meal": "Coffee",
+              "name": "Café sample — São Paulo accents"
+            }
+          ],
+          "notes": "Vegetarian: confirm broth and sauces contain no fish. Verify all opening hours."
+        },
+        {
+          "day_number": 7,
+          "area": "Kyoto",
+          "title": "京都の庭園",
+          "activities": [
+            "10:30 — Start after a relaxed breakfast.",
+            "12:00 — Explore Arashiyama 嵐山 gardens.",
+            "16:00 — Photography walk, then Café time."
+          ],
+          "food": [
+            {
+              "meal": "Lunch",
+              "name": "Vegan Ramen UZU Kyoto"
+            },
+            {
+              "meal": "Coffee",
+              "name": "Café sample — São Paulo accents"
+            }
+          ],
+          "notes": "Vegetarian: confirm broth and sauces contain no fish. Verify all opening hours."
+        },
+        {
+          "day_number": 8,
+          "area": "Kyoto",
+          "title": "京都の庭園",
+          "activities": [
+            "10:30 — Start after a relaxed breakfast.",
+            "12:00 — Explore Arashiyama 嵐山 gardens.",
+            "16:00 — Photography walk, then Café time."
+          ],
+          "food": [
+            {
+              "meal": "Lunch",
+              "name": "Vegan Ramen UZU Kyoto"
+            },
+            {
+              "meal": "Coffee",
+              "name": "Café sample — São Paulo accents"
+            }
+          ],
+          "notes": "Vegetarian: confirm broth and sauces contain no fish. Verify all opening hours."
+        },
+        {
+          "day_number": 9,
+          "area": "Osaka",
+          "title": "大阪の食とアニメ",
+          "activities": [
+            "10:30 — Start after a relaxed breakfast.",
+            "12:00 — Explore Dotonbori 道頓堀 and Den Den Town.",
+            "16:00 — Photography walk, then Café time."
+          ],
+          "food": [
+            {
+              "meal": "Lunch",
+              "name": "Paprika Shokudo Vegan"
+            },
+            {
+              "meal": "Coffee",
+              "name": "Café sample — São Paulo accents"
+            }
+          ],
+          "notes": "Vegetarian: confirm broth and sauces contain no fish. Verify all opening hours."
+        },
+        {
+          "day_number": 10,
+          "area": "Osaka",
+          "title": "大阪の食とアニメ",
+          "activities": [
+            "10:30 — Start after a relaxed breakfast.",
+            "12:00 — Explore Dotonbori 道頓堀 and Den Den Town.",
+            "16:00 — Photography walk, then Café time."
+          ],
+          "food": [
+            {
+              "meal": "Lunch",
+              "name": "Paprika Shokudo Vegan"
+            },
+            {
+              "meal": "Coffee",
+              "name": "Café sample — São Paulo accents"
+            }
+          ],
+          "notes": "Vegetarian: confirm broth and sauces contain no fish. Verify all opening hours."
+        }
+      ],
+      "transport": [
+        {
+          "area": "Tokyo",
+          "getting_here": "Train from the airport.",
+          "getting_around": "Local trains and easy walking; use an IC card and check last trains."
+        },
+        {
+          "area": "Kyoto",
+          "getting_here": "Train from the previous city; verify fares and timetables.",
+          "getting_around": "Local trains and easy walking; use an IC card and check last trains."
+        },
+        {
+          "area": "Osaka",
+          "getting_here": "Train from the previous city; verify fares and timetables.",
+          "getting_around": "Local trains and easy walking; use an IC card and check last trains."
+        }
+      ],
+      "open_items": [
+        "Book flights and hotels.",
+        "Confirm menus and opening hours.",
+        "Offline sample: current prices and availability have not been checked."
+      ]
+    },
+    "research_grounded": false
+  },
+  "request": "10 days in Japan in October, me and my vegetarian girlfriend, we love anime, food, nature, and photography, budget around $4,500, and we hate early mornings",
+  "origin": "New York",
+  "generatedAt": "2026-10-23T17:30:00-04:00"
+}

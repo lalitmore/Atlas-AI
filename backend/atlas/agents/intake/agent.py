@@ -8,6 +8,7 @@ from __future__ import annotations
 from google.adk.agents import LlmAgent
 
 from atlas.models import build_model
+from atlas.agents.progress import mark_stage_started
 from atlas.schemas import TripBrief
 from atlas.agents.intake.prompt import INTAKE_INSTRUCTION
 
@@ -17,6 +18,7 @@ def build_intake_agent() -> LlmAgent:
     return LlmAgent(
         name="intake_agent",
         model=build_model(),
+        before_agent_callback=mark_stage_started,
         description="Parses a traveler's free-text request into a structured, validated TripBrief.",
         instruction=INTAKE_INSTRUCTION,
         output_schema=TripBrief,

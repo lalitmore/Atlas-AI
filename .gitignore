@@ -1,0 +1,15 @@
+output/
+tmp/
+.venv/
+node_modules/
+.next/
+__pycache__/
+*.py[cod]
+*.pdf
+/*.png
+/*.jpg
+/*.jpeg
+/*.webp
+.env
+.env.*
+!.env.example

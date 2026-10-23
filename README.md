@@ -2,7 +2,14 @@
 
 **Live demo → [atlasai-iota.vercel.app](https://atlasai-iota.vercel.app)**
 
-A multi-agent travel planning app built on Google's Agent Development Kit (ADK 2.0) and Gemini. Describe a trip in plain language — Atlas researches it, optimizes the route, and writes a day-by-day itinerary with booking links, transport guidance, and an interactive map.
+A multi-agent travel planning app built on Google's Agent Development Kit (ADK 2.3+) and Gemini. Describe a trip in plain language — Atlas researches it, optimizes the route, and writes a day-by-day itinerary with booking links, transport guidance, an interactive map, and PDF export.
+
+**Current defaults:** Intake and both research agents use `gemini-3.5-flash-lite`;
+the itinerary writer uses `gemini-3.6-flash`.
+Live Google Search grounding is enabled by default and uses your configured
+Gemini Developer API project. API usage can incur charges, including
+when Atlas runs locally. Set `ENABLE_SEARCH_GROUNDING=FALSE` only when deliberately
+creating general-knowledge drafts without live research.
 
 ---
 
@@ -45,7 +52,7 @@ Free-text input
 ┌──────────────────────┐
 │  Route Optimizer     │  Pure Python — NOT an LLM. Haversine distances →
 │  (ADK callback)      │  nearest-neighbor seed → 2-opt TSP improvement →
-└──────────┬───────────┘  day allocation. Deterministic, correct every time.
+└──────────┬───────────┘  day allocation. Deterministic route heuristic.
            │
            ▼
 ┌──────────────────────┐
@@ -60,15 +67,21 @@ Free-text input
 
 ### Key engineering decisions
 
-**Deterministic routing instead of asking the model.** LLMs are unreliable at exact combinatorial optimization. Route order is computed with a 2-opt TSP solver — reliable, free, and correct every time. The model only writes prose against a mathematically optimal skeleton.
+**Deterministic routing instead of asking the model.** Route order is computed with a nearest-neighbor and 2-opt TSP heuristic that reduces backtracking without a model call. The itinerary writer follows this route and its day allocations; the heuristic does not guarantee a globally optimal tour.
 
-**Schema as a quality-control mechanism.** A required `name` field on `FoodStop` makes "quick veg meal in Arashiyama" structurally impossible. The model is forced to commit to a real, named place. Quality enforced by the data contract, not just prompt wording.
+**Schema as a quality-control mechanism.** `FoodStop` requires a name and meal label, and the writer is instructed to use researched venues with suitable dietary options. The schema enforces structure; it cannot establish that a venue exists or that every generated detail is correct.
 
 **Grounding for freshness.** Festival dates, prices, and restaurants come from live Google Search, not training data. The research agent is where "real world, right now" enters.
 
 **Two research agents because Gemini requires it.** Gemini rejects `output_schema` combined with `google_search` in one call. Grounding and structuring are cleanly split — a constraint that produced better separation of concerns anyway.
 
-**Hybrid model tiering.** Cheap Gemini 2.5 Flash-Lite for intake/research/structuring; full Gemini 2.5 Flash only for the itinerary writer where date ordering and reasoning matter. Explicit cost/quality tradeoff.
+**Hybrid model tiering.** Intake and both research agents use `DEFAULT_MODEL`
+(default `gemini-3.5-flash-lite`); the itinerary writer alone uses `ITINERARY_MODEL`
+(default `gemini-3.6-flash`) for stronger itinerary reasoning. Each setting can be
+overridden independently. There is no automatic model fallback.
+For local use, verify both model IDs with your key before planning. If access to
+`gemini-3.6-flash` cannot be confirmed, set
+`ITINERARY_MODEL=gemini-3.5-flash-lite` in the local pipeline `.env` until it can.
 
 **Streaming as UX honesty.** Research takes ~30–40 seconds. Instead of a blank screen, five named stages stream live via SSE — the latency becomes a feature that shows the work.
 
@@ -80,13 +93,14 @@ Free-text input
 
 | Layer | Technology |
 |---|---|
-| Agent framework | Google ADK 2.0 |
-| Models | Gemini 2.5 Flash + Flash-Lite |
-| Grounding | Google Search (ADK built-in) |
+| Agent framework | Google ADK 2.3+ |
+| Intake, grounded research, structured research | `gemini-3.5-flash-lite` (`DEFAULT_MODEL`) |
+| Itinerary writer | `gemini-3.6-flash` (`ITINERARY_MODEL`) |
+| Grounding | Google Search (enabled by default; `ENABLE_SEARCH_GROUNDING`) |
 | Backend | FastAPI, sse-starlette, Pydantic |
 | Optimization | Pure Python (haversine + 2-opt TSP) |
 | Frontend | Next.js 16, React 19, Tailwind v4, TypeScript |
-| Map | react-leaflet v5, Carto basemap tiles |
+| Map | react-leaflet v5, OpenStreetMap standard tiles |
 | Backend deploy | Docker → Google Cloud Run |
 | Frontend deploy | Vercel |
 
@@ -97,7 +111,8 @@ Free-text input
 - **Single free-text input** — no forms, no dropdowns; plain language is the UX
 - **Live agent pipeline** — departures-board UI streams all 5 stages in real time
 - **Interactive route map** — numbered pins, dashed polyline, auto-fit bounds
-- **Named, linked restaurants** — `FoodStop` schema forces real place names; each links to a live Maps search
+- **Named, linked restaurants** — researched dining suggestions with dietary notes; each links to a Maps search
+- **Download PDF** — exports the completed plan, original request, assumptions, route, daily activities, food, transport, open items, and clickable booking/navigation links; slugged filenames and bundled Japanese/Korean fonts. Exporting an existing result makes no Gemini call.
 - **Transport guidance** — per-city "getting here" and "getting around" advice; inter-city mode recommendation
 - **Booking deep links** — Directions (all modes), Hotels, Flights, vegetarian-food search per city
 - **Honest output** — explicit assumptions, open items, and live links as the verification layer
@@ -131,7 +146,9 @@ Atlas AI/
         │   ├── layout.tsx
         │   └── globals.css        # Tailwind v4 design tokens
         ├── components/
-        │   └── RouteMap.tsx       # Leaflet map component
+        │   ├── RouteMap.tsx       # Leaflet + OpenStreetMap tiles
+        │   ├── DownloadPdfButton.tsx
+        │   └── ItineraryPdf.tsx   # lazy-loaded PDF document
         └── lib/
             ├── atlas.ts           # types + SSE stream parser
             └── links.ts           # deep-link URL builders
@@ -148,22 +165,74 @@ cd backend
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 
-# add your key to atlas/agents/pipeline/.env
-echo "GOOGLE_API_KEY=your_key_here" > atlas/agents/pipeline/.env
-echo "GOOGLE_GENAI_USE_VERTEXAI=FALSE" >> atlas/agents/pipeline/.env
+# Copy the template without overwriting an existing local file, then edit its key.
+cp -n .env.example atlas/agents/pipeline/.env
+# Set GOOGLE_API_KEY in atlas/agents/pipeline/.env; never commit that file.
 
-uvicorn atlas.api.main:app --reload --port 8000
+env -u GOOGLE_API_KEY -u GEMINI_API_KEY uvicorn atlas.api.main:app --reload --port 8000
 ```
+
+The local command clears inherited key variables for that process so uvicorn uses
+the key in `atlas/agents/pipeline/.env`. Otherwise, environment variables take
+precedence over that file and may select a different Gemini project's quota.
 
 **Frontend**
 
 ```bash
 cd frontend
-npm install
-npm run dev     # → http://localhost:3000
+npm ci
+npm run dev -- --hostname localhost     # → http://localhost:3000 (this Mac only)
 ```
 
 The frontend reads `NEXT_PUBLIC_API_BASE` for the backend URL (defaults to `http://localhost:8000`).
+
+Use a valid Gemini Developer API key with access and quota for the configured models
+and Search grounding. Local hosting does not make Gemini API requests free. No cloud
+deployment is needed for local use.
+
+Settings in `atlas/agents/pipeline/.env` (or Cloud Run environment variables):
+
+```dotenv
+DEFAULT_MODEL=gemini-3.5-flash-lite
+ITINERARY_MODEL=gemini-3.6-flash
+ENABLE_SEARCH_GROUNDING=TRUE
+```
+
+Production must keep Search grounding enabled. Google documents this model ID,
+structured outputs, and Search support in its
+[model reference](https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite).
+See [pricing](https://ai.google.dev/gemini-api/docs/pricing) for billed API usage.
+The original code used `gemini-2.5-flash-lite` for intake/research/structuring and
+`gemini-2.5-flash` for the itinerary. Those were changed after Google rejected the
+old Flash-Lite model. Hybrid tiering is retained with the supported 3.x models.
+The itinerary model ID is documented in Google's [Gemini 3.6 Flash reference](https://ai.google.dev/gemini-api/docs/models/gemini-3.6-flash).
+
+## Offline checks
+
+```bash
+cd backend
+.venv/bin/python -m pytest -q
+.venv/bin/ruff check atlas tests
+cd ../frontend
+node --test tests/*.test.mjs
+npm run lint
+npx tsc --noEmit
+npm run build
+```
+
+Backend tests use dummy credentials and mocked provider responses; they do not call
+Gemini. The frontend build may fetch Google Fonts. PDF rendering can be checked
+without generating a new trip:
+
+```bash
+cd frontend
+node tests/render-itinerary-pdf.mjs tests/fixtures/japan.json ../output/pdf/sample.pdf
+```
+
+See [request-role/model evidence](docs/hybrid-model-evidence.md), the
+[fixture PDF link audit](docs/pdf-link-audit.md), and the dated
+[local verification report](docs/home-wifi-verification.md). Generated PDFs,
+screenshots, logs, dependencies, caches, and real dotenv files stay out of Git.
 
 ---
 
@@ -171,8 +240,20 @@ The frontend reads `NEXT_PUBLIC_API_BASE` for the backend URL (defaults to `http
 
 - **Backend:** Dockerized FastAPI on Google Cloud Run (`--max-instances 1`, `--no-cpu-throttling`, `--min-instances 1`)
 - **Frontend:** Vercel (`vercel --prod` from `frontend/`)
-- **API key:** Gemini Developer API, Tier 1 (billing enabled on the AI Studio project)
+- **API key:** Gemini Developer API, Tier 1 with billing enabled; Search grounding ON.
 - **CORS:** `ALLOWED_ORIGINS` env var on Cloud Run, set to the Vercel production domain
+
+Cloud Run environment for the production Developer API backend:
+
+| Variable | Value |
+| --- | --- |
+| `GOOGLE_API_KEY` | Tier 1 key, preferably a secret reference |
+| `GOOGLE_GENAI_USE_VERTEXAI` | `false` |
+| `GOOGLE_GENAI_USE_ENTERPRISE` | Unset or `false` |
+| `DEFAULT_MODEL` | `gemini-3.5-flash-lite` |
+| `ITINERARY_MODEL` | `gemini-3.6-flash` |
+| `ENABLE_SEARCH_GROUNDING` | `true` |
+| `ALLOWED_ORIGINS` | `https://atlasai-iota.vercel.app` |
 
 ---
 
